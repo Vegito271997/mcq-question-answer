@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import RenderResult from "./render-result";
 import { mockQuestions } from "./constants";
+import RenderQuestion from "./select-ui";
 
 const QuestionsDisplay = () => {
-  const [questions, setQuestions] = useState(mockQuestions);
+  const [questions] = useState(mockQuestions);
   const [activeQues, setActiveQues] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [ans, setAns] = useState(Array(questions.length).fill(""));
+  const [selectedOption, setSelectedOption] = useState([]); // Multiple answers
+
+  useEffect(() => {
+    const arr = [];
+    for (let i = 0; i < questions.length; i++) arr.push([]);
+
+    setSelectedOption(arr);
+  }, [questions.length]);
 
   const isLastQues = activeQues === questions.length - 1;
   const showPreviousButton = activeQues !== 0;
@@ -16,19 +24,27 @@ const QuestionsDisplay = () => {
       setShowResult(true);
     } else setActiveQues((prev) => prev + 1);
   };
-  const handleAnswerSubmit = (e) => {
-    const _ans = e.target.value;
-
-    const newAnsArray = ans;
-    newAnsArray[activeQues] = _ans;
-    setAns([...newAnsArray]);
-  };
 
   const handlePrev = () => {
     setActiveQues((prev) => prev - 1);
   };
 
-  console.log(ans);
+  const onChangeHandler = (e, option) => {
+    const value = e.target.value;
+
+    setSelectedOption((prev) => {
+      const newArr = [...prev];
+      if (prev[activeQues].includes(option)) {
+        const updatedArr = selectedOption[activeQues]?.filter(
+          (val) => val !== option
+        );
+        newArr[activeQues] = updatedArr;
+        return newArr;
+      }
+      newArr[activeQues].push(value);
+      return newArr;
+    });
+  };
 
   const question = questions[activeQues];
 
@@ -36,21 +52,16 @@ const QuestionsDisplay = () => {
     <div>
       <h1>Quiz App</h1>
       {showResult ? (
-        <RenderResult questions={questions} ans={ans} />
+        <RenderResult questions={questions} ans={selectedOption} />
       ) : (
         <>
-          <div>
-            <span>{question.title}</span>
-            <select
-              key={question}
-              onChange={handleAnswerSubmit}
-              value={ans[activeQues]}
-            >
-              {question.options.map((option, i) => (
-                <option value={option}>{option}</option>
-              ))}
-            </select>
-          </div>
+          <RenderQuestion
+            question={question}
+            onChangeHandler={onChangeHandler}
+            activeQues={activeQues}
+            selectedOption={selectedOption}
+          />
+
           {showPreviousButton && <button onClick={handlePrev}>Prev</button>}
           <button onClick={handleButtonClick}>
             {isLastQues ? "Submit" : "Next"}
